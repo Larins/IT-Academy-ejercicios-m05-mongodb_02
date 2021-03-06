@@ -1,0 +1,89 @@
+/*
+
+PROCEDIMIENTO
+
+1-(abrir símbolo del sistema)
+2-cd / (sirve para ir a C:)
+3-cd program files, cd mongodb, cd server, cd 4.4, cd bin (sirve para acceder a la carpeta)
+4-mongod (sirve para ejecutar el programa)
+5-(copy paste del connection string del cloud.mongodb.com, para conectar mis db que he generado desde mongocompass, cargando el json del moodle)
+6-(meter el password que solicita)
+7-diferentes comandos útiles:
+	show dbs (sirve para mostrar las db que tenemos)
+	show users (sirve para mostrar los usuarios)
+	use restaurant (sirve para usar una determinada db o colección, en este caso se llama "restaurant" y este nombre se repetirá en los comandos de las queries)
+8-ya se pueden empezar a escribir las queries ;)
+
+
+SISTEMA DE VERIFICACIÓN
+
+Pasamos la db "Restaurants" a un Excel
+Link: https://docs.google.com/spreadsheets/d/1ikwOPhKdQ9Uvr-iN15B3p2nSiop6bYLvJ9_nU7p1z_A/edit#gid=1243660638
+Este Excel nos permitirá comprobar los resultados de las queries
+Mediante filtros y fórmulas en diferentes pestañas
+*/
+
+
+//Seleccionar la DB correspondiente.
+use restaurant
+
+
+/*
+
+QUERIES
+
+NIVEL 2
+
+*/
+
+//2.01. Escriu una consulta per trobar els restaurants quins no preparen cap cuisine de 'American ' i va aconseguir un punt de grau 'A' no pertany a Brooklyn. S'ha de mostrar el document segons la cuisine en ordre descendent
+db.restaurant.find({"cuisine":{$ne:"American "},"grades.grade": "A","borough":{$ne:"Brooklyn"}}).sort({cuisine: 1}).pretty()
+//count() = 2017 (correcto, comprobado en Excel)
+
+//2.02. Escriu una consulta per trobar el restaurant_id, name, borough i cuisine per a aquells restaurants quin contenir 'Wil' com les tres primeres lletres en el seu nom
+db.restaurant.find({ name: /^Wil/ , restaurant_id: {$ne:""} , borough:{$ne:""}, cuisine:{$ne:""}}).pretty()
+//count() = 3 (correcto, comprobado en Excel)
+
+//2.03. Escriu una consulta per trobar el restaurant_id, name, borough i cuisine per a aquells restaurants quin contenir 'ces' com les últim tres lletres en el seu nom
+db.restaurant.find({ name: /ces$/ , restaurant_id: {$ne:""} , borough:{$ne:""}, cuisine:{$ne:""}}).pretty()
+//count() = 6 (correcto, comprobado en Excel)
+
+//2.04. Escriu una consulta per trobar el restaurant_id, name, borough i cuisine per a aquells restaurants quin contenir 'Reg' com tres lletres en algun lloc en el seu nom
+db.restaurant.find({ name: /Reg/ , restaurant_id: {$ne:""} , borough:{$ne:""}, cuisine:{$ne:""}}).pretty()
+//count() = 7 (correcto, comprobado en Excel)
+
+//2.05. Escriu una consulta per trobar els restaurants quins pertanyen al Bronx i va preparar qualsevol plat American o xinès
+//Ojo que aquí vuelve aplicarse lo de "American " (con un espacio al final) en lugar de "American" (sin espacio)
+//Podemos incluir solo los que solo pone "Chinese"
+db.restaurant.find({borough:"Bronx", $or: [ {cuisine:"American "},{  cuisine:"Chinese"}]}).pretty()
+//count() = 91 (correcto, comprobado en Excel)
+//Podemos incluir todas las variantes de "Chinese" (Chinese/Japanese y Chinese/Cuban) sin tener que especificar
+db.restaurant.find({borough:"Bronx", $or: [ {cuisine:"American "},{  cuisine:/Chinese/}]}).pretty()
+//count() = 93 (correcto, comprobado en Excel)
+
+//2.06. Escriu una consulta per trobar el restaurant_id, name, borough i cuisine per a aquells restaurants que pertanyen a Staten Island o Queens o Bronx or Brooklyn
+db.restaurant.find({restaurant_id: {$ne:""},name: {$ne:""},cuisine: {$ne:""},$or: [ {borough:"Staten Island"},{  borough:"Queens"},{borough:"Bronx"},{borough:"Brooklyn"}]}).pretty()
+//count() = 1889 (correcto, comprobado en Excel)
+
+//2.07. Escriu una consulta per trobar el restaurant_id, name, borough i cuisine per a aquells restaurants que no pertanyen a Staten Island o Queens o Bronx or Brooklyn
+db.restaurant.find({restaurant_id: {$ne:""},name: {$ne:""},cuisine: {$ne:""},$and: [ {borough:{$ne:"Staten Island"}},{borough:{$ne:"Queens"}},{borough:{$ne:"Bronx"}},{borough:{$ne:"Brooklyn"}}]}).pretty()
+//count() = 1883 (correcto, comprobado en Excel)
+
+//2.08. Escriu una consulta per trobar el restaurant_id, name, borough i cuisine per a aquells restaurants que aconsegueixin un marcador quin no és més que 10
+db.restaurant.find({restaurant_id: {$ne:""},name: {$ne:""},cuisine: {$ne:""}, borough:{$ne:""},"grades.score":{"$lte": 10}}).pretty()
+//count() = 3529 (correcto, comprobado en Excel)
+
+//2.09. Escriu una consulta per trobar el restaurant_id, name, borough i cuisine per a aquells restaurants que preparen peix excepte 'American' i 'Chinees' o el name del restaurant comença amb lletres 'Wil'
+//Ojo que aquí vuelve aplicarse lo de "American " (con un espacio al final) en lugar de "American" (sin espacio)
+//Ojo que la condición de que preparen pescado no la localizo en ningún campo
+db.restaurant.find({restaurant_id: {$ne:""},borough:{$ne:""}, $and: [ {cuisine:{$ne:"American "}}, {cuisine:{$not:/^Chinese*/}}],name:{$not:/^Wil/}}).pretty()
+//count() = 2394 (correcto, comprobado en Excel)
+
+//2.10. Escriu una consulta per trobar el restaurant_id, name, i grades per a aquells restaurants que aconsegueixin un grau "A" i un score 11 en dades d'estudi ISODate "2014-08-11T00:00:00Z"
+//Ojo porque las fechas están guardadas en milisegundos en el JSON
+//La fecha ISODate "2014-08-11T00:00:00Z" equivaldría a 174009600000 
+//Pero no he encontrado ese valor en el JSON
+//Quizá hay que hacer una conversión...
+db.restaurant.find({restaurant_id: {$ne:""},name: {$ne:""},$and:[{"grades.grade":"A"},{"grades.score":11},{"grades.date":174009600000}]}).pretty()
+//count() = 0 (suponiendo que la fecha no existe en el JSON, es correcto)
+
